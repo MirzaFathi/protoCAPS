@@ -1,0 +1,24 @@
+rules_version = '2';
+// Aturan MVP: hanya pengguna yang sudah masuk (Anonymous Auth) yang bisa membaca/menulis.
+// Pendaftaran langsung aktif. Belum ada pembagian peran — dicatat sebagai keterbatasan MVP.
+// status hanya bisa diubah (mis. dinonaktifkan) lewat Firebase Console oleh pengelola.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /vehicles/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.status == 'verified'
+        && request.resource.data.plate is string && request.resource.data.plate.size() <= 12;
+      allow update: if false;
+    }
+    match /uses/{key} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;   // sekali dibuat tidak bisa diubah: mencegah QR dipakai dua kali
+    }
+    match /passes/{id} {
+      allow read, create: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['result', 'reason']);
+    }
+  }
+}
